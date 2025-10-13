@@ -1,0 +1,419 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>請假扣薪計算器（卡片風格）</title>
+  <style>
+    :root{
+      --bg:#0f172a; --card:#0b1220; --muted:#94a3b8; --accent:#06b6d4;
+      --glass: rgba(255,255,255,0.04);
+    }
+    *{box-sizing:border-box}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,"Noto Sans CJK TC",sans-serif;
+         margin:0;padding:28px;background:linear-gradient(180deg,#071025 0%, #071f2a 100%);color:#e6eef6;}
+    .wrap{max-width:1100px;margin:0 auto;}
+    .header{display:flex;align-items:center;gap:16px;margin-bottom:18px;}
+    .title{font-size:20px;margin:0}
+    .subtitle{color:var(--muted);font-size:13px;margin:0}
+    .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:12px}
+    .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); padding:16px;border-radius:14px;box-shadow:0 8px 30px rgba(2,6,23,0.6);border:1px solid rgba(255,255,255,0.03);}
+    .controls .field{display:flex;flex-direction:column;margin-bottom:10px;}
+    label{font-size:12px;color:var(--muted);margin-bottom:6px}
+    input[type=number], select, input[type=text] {background:var(--glass);border:1px solid rgba(255,255,255,0.04);padding:10px;border-radius:10px;color:#e8f9ff;}
+    .btn{background:linear-gradient(90deg,var(--accent),#8be4ef);color:#012028;border:0;padding:9px 12px;border-radius:10px;cursor:pointer;font-weight:700;}
+    .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--accent);}
+    .btn.warn{background:#fb923c;color:#081018;}
+    table{width:100%;border-collapse:collapse;margin-top:12px;font-size:14px;}
+    th,td{padding:10px;border-bottom:1px solid rgba(255,255,255,0.03);text-align:left;color:#d9eef8}
+    th{font-size:13px;color:var(--muted);font-weight:600}
+    .muted{color:var(--muted);font-size:13px}
+    .summary{display:flex;gap:12px;flex-wrap:wrap;margin-top:12px}
+    .tile{flex:1;min-width:180px;padding:12px;border-radius:10px;background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.02));border:1px solid rgba(255,255,255,0.02)}
+    .right{text-align:right}
+    .small{width:120px}
+    .actions{display:flex;gap:8px;align-items:center}
+    @media (max-width:900px){ .grid{grid-template-columns:1fr} .header{flex-direction:column;align-items:flex-start} .summary{flex-direction:column} }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="header">
+      <div>
+        <h1 class="title">請假扣薪計算器（卡片風格）</h1>
+        <p class="subtitle">請手動輸入月薪 / 每月天數 / 每日工時 → 新增請假紀錄 → 會自動計算扣薪與統計</p>
+      </div>
+      <div style="margin-left:auto" class="actions">
+        <button id="exportXlsx" class="btn">匯出 XLSX</button>
+        <button id="exportCsv" class="btn ghost">匯出 CSV</button>
+        <button id="clearAll" class="btn warn">清空紀錄</button>
+      </div>
+    </div>
+
+    <div class="grid" style="gap:14px;">
+      <div class="card" style="grid-column: span 4;" id="leftCard">
+        <div class="controls">
+          <div class="field">
+            <label>月薪 (NT$) — 請自行輸入（無預設）</label>
+            <input id="monthlySalary" type="number" placeholder="例如 38000" />
+          </div>
+          <div class="field">
+            <label>每月天數（用於日薪，例：30）</label>
+            <input id="daysPerMonth" type="number" placeholder="例如 30" />
+          </div>
+          <div class="field">
+            <label>每日工時（小時，例：8）</label>
+            <input id="hoursPerDay" type="number" placeholder="例如 8" />
+          </div>
+
+          <div style="display:flex;gap:8px;margin-top:8px;">
+            <button id="addRowBtn" class="btn">＋ 新增請假一筆</button>
+            <button id="pasteSample" class="btn ghost">貼上 CSV（快速新增多筆）</button>
+          </div>
+
+          <p class="muted" style="margin-top:10px;">
+            計算方式：時薪 = 月薪 ÷ 每月天數 ÷ 每日工時。<br>
+            給薪規則（內建）：事假/育嬰假/護理假 = 不給薪(100% 扣)；病假/生理假/安胎假 = 半薪(50% 扣)；特休/婚假/公假/喪假/補休 = 全薪(0% 扣)；其他 可自訂比例。
+          </p>
+        </div>
+      </div>
+
+      <div class="card" style="grid-column: span 8;" id="rightCard">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <label class="muted">顯示月份</label>
+            <select id="monthSelect" style="padding:8px;border-radius:8px;background:transparent;color:#e6eef6;border:1px solid rgba(255,255,255,0.04);margin-left:8px;">
+              <option value="all">全部月份</option>
+              <script>for(let i=1;i<=12;i++) document.write(`<option value="${i}">${i} 月</option>`)</script>
+            </select>
+          </div>
+          <div class="muted">時薪： <span id="hourlyRate">尚未輸入</span></div>
+        </div>
+
+        <table>
+          <thead>
+            <tr>
+              <th style="width:80px">月份</th>
+              <th style="width:170px">假別</th>
+              <th style="width:120px">請假時數 (小時)</th>
+              <th style="width:130px" class="right">扣薪比例</th>
+              <th style="width:160px" class="right">扣薪金額 (NT$)</th>
+              <th style="width:80px"></th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+
+        <div class="summary">
+          <div class="tile">
+            <div class="muted">年度總扣款</div>
+            <div id="yearTotal" style="font-weight:800;font-size:18px">NT$ 0.00</div>
+          </div>
+          <div class="tile">
+            <div class="muted">所選月份扣款</div>
+            <div id="monthTotal" style="font-weight:800;font-size:18px">NT$ 0.00</div>
+            <div class="muted" style="font-size:12px;margin-top:6px;">（請從上方下拉選擇月份）</div>
+          </div>
+          <div class="tile">
+            <div class="muted">本月可得薪資（若只有此月扣款）</div>
+            <div id="remainingSalary" style="font-weight:800;font-size:16px">NT$ 0.00</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <footer style="margin-top:18px;text-align:center;color:var(--muted);font-size:13px">
+      說明：你可隨時新增多筆紀錄、調整「其他」假別的自訂扣薪比（例如輸入 30% 或 0.3）。如需匯出為 Excel，按「匯出 XLSX」；若外部資源載入失敗，請使用 CSV 匯出。
+    </footer>
+  </div>
+
+<script>
+/* 內建扣薪規則（ratio: 扣薪比例，1 = 扣 100%） */
+const defaultRules = {
+  "事假": 1.0,
+  "病假": 0.5,
+  "生理假": 0.5,
+  "特休": 0.0,
+  "特休假": 0.0,
+  "婚假": 0.0,
+  "喪假": 0.0,
+  "公傷假": 0.0,
+  "公假": 0.0,
+  "育嬰假": 1.0,
+  "補休": 0.0,
+  "安胎假": 0.5,
+  "護理假": 1.0,
+  "其他": null
+};
+
+const monthlySalaryInput = document.getElementById('monthlySalary');
+const daysPerMonthInput = document.getElementById('daysPerMonth');
+const hoursPerDayInput = document.getElementById('hoursPerDay');
+const hourlyRateEl = document.getElementById('hourlyRate');
+const tbody = document.getElementById('tbody');
+const addRowBtn = document.getElementById('addRowBtn');
+const clearAllBtn = document.getElementById('clearAll');
+const exportCsvBtn = document.getElementById('exportCsv');
+const exportXlsxBtn = document.getElementById('exportXlsx');
+const yearTotalEl = document.getElementById('yearTotal');
+const monthTotalEl = document.getElementById('monthTotal');
+const remainingSalaryEl = document.getElementById('remainingSalary');
+const monthSelect = document.getElementById('monthSelect');
+const pasteSampleBtn = document.getElementById('pasteSample');
+
+let rows = []; // {id, month, type, hours, ratio (null for other), customRatio, deduction}
+
+function computeHourlyRate(){
+  const ms = parseFloat(monthlySalaryInput.value);
+  const md = parseFloat(daysPerMonthInput.value);
+  const hd = parseFloat(hoursPerDayInput.value);
+  if(!ms || !md || !hd) return null;
+  return ms / md / hd;
+}
+function fmtMoney(v){
+  return 'NT$ ' + Number(v || 0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
+}
+
+function recalcAll(){
+  const hr = computeHourlyRate();
+  hourlyRateEl.textContent = hr ? fmtMoney(hr) : '尚未完整輸入（月薪/天數/日工時）';
+  rows.forEach(r=>{
+    let ratio = r.ratio;
+    if(ratio === null){
+      // parse custom ratio if present (like 30% or 0.3)
+      ratio = parseCustomRatio(r.customRatio);
+      if(ratio === null) ratio = 0; // 若沒輸入，視為 0 扣
+    }
+    r.deduction = hr ? (r.hours * hr * ratio) : 0;
+  });
+  renderTable();
+  updateSummary();
+}
+
+function parseCustomRatio(v){
+  if(v === undefined || v === null) return null;
+  v = String(v).trim();
+  if(!v) return null;
+  if(v.endsWith('%')){
+    const n = parseFloat(v.slice(0,-1));
+    if(isNaN(n)) return null;
+    return n/100;
+  } else {
+    const n = parseFloat(v);
+    if(isNaN(n)) return null;
+    if(n>1 && n<=100) return n/100;
+    return n;
+  }
+}
+
+function renderTable(){
+  tbody.innerHTML = '';
+  rows.forEach(r=>{
+    const tr = document.createElement('tr');
+    tr.style.verticalAlign = 'middle';
+
+    // 月份
+    const tdM = document.createElement('td');
+    const selM = document.createElement('select');
+    selM.style.padding='6px'; selM.style.borderRadius='8px'; selM.style.background='transparent'; selM.style.color='#e6eef6';
+    for(let m=1;m<=12;m++){
+      const o = document.createElement('option'); o.value=m; o.textContent=m;
+      if(r.month===m) o.selected=true;
+      selM.appendChild(o);
+    }
+    selM.addEventListener('change', e=>{ r.month = parseInt(e.target.value); recalcAll(); });
+    tdM.appendChild(selM);
+    tr.appendChild(tdM);
+
+    // 假別 + custom input
+    const tdType = document.createElement('td');
+    const selT = document.createElement('select');
+    selT.style.padding='6px'; selT.style.borderRadius='8px'; selT.style.background='transparent'; selT.style.color='#e6eef6';
+    Object.keys(defaultRules).forEach(k=>{
+      const o = document.createElement('option'); o.value = k; o.textContent = k;
+      if(r.type===k) o.selected=true;
+      selT.appendChild(o);
+    });
+    selT.addEventListener('change', e=>{
+      r.type = e.target.value;
+      r.ratio = defaultRules[r.type];
+      recalcAll();
+    });
+    tdType.appendChild(selT);
+
+    // custom ratio input shown only if '其他'
+    const custom = document.createElement('input');
+    custom.type='text'; custom.placeholder='其他扣薪(例:30%或0.3)'; custom.style.marginLeft='8px';
+    custom.style.padding='6px'; custom.style.borderRadius='8px'; custom.style.background='transparent'; custom.style.color='#e6eef6';
+    custom.value = r.customRatio || '';
+    custom.addEventListener('input', e=>{ r.customRatio = e.target.value; recalcAll(); });
+    if(r.ratio !== null) custom.style.display='none';
+    tdType.appendChild(custom);
+    tr.appendChild(tdType);
+
+    // 時數
+    const tdH = document.createElement('td');
+    const inH = document.createElement('input'); inH.type='number'; inH.style.padding='6px'; inH.style.borderRadius='8px';
+    inH.style.width='120px'; inH.value = r.hours; inH.step=0.5; inH.min=0;
+    inH.addEventListener('input', e=>{ r.hours = parseFloat(e.target.value) || 0; recalcAll(); });
+    tdH.appendChild(inH);
+    tr.appendChild(tdH);
+
+    // 比例文字
+    const tdR = document.createElement('td');
+    tdR.className = 'right';
+    const ratioText = (r.ratio === null) ? (parseCustomRatio(r.customRatio) !== null ? ((parseCustomRatio(r.customRatio)*100).toFixed(0)+'% 扣') : '(其他)') : ((r.ratio*100).toFixed(0)+'% 扣');
+    tdR.textContent = ratioText;
+    tr.appendChild(tdR);
+
+    // 扣薪金額
+    const tdD = document.createElement('td');
+    tdD.className = 'right';
+    tdD.textContent = fmtMoney(r.deduction || 0);
+    tr.appendChild(tdD);
+
+    // 刪除
+    const tdX = document.createElement('td');
+    const del = document.createElement('button');
+    del.className = 'btn ghost'; del.textContent='刪除';
+    del.addEventListener('click', ()=>{ rows = rows.filter(x=>x.id !== r.id); recalcAll(); });
+    tdX.appendChild(del);
+    tr.appendChild(tdX);
+
+    // show/hide custom input depending on r.ratio
+    if(r.ratio === null) custom.style.display='inline-block';
+    else custom.style.display='none';
+
+    tbody.appendChild(tr);
+  });
+}
+
+function updateSummary(){
+  const total = rows.reduce((s,r)=>s + (r.deduction || 0), 0);
+  yearTotalEl.textContent = fmtMoney(total);
+
+  const sel = monthSelect.value;
+  let mTotal = 0;
+  if(sel === 'all') mTotal = total;
+  else mTotal = rows.filter(r=>r.month === parseInt(sel)).reduce((s,r)=>s + (r.deduction || 0), 0);
+  monthTotalEl.textContent = fmtMoney(mTotal);
+
+  const ms = parseFloat(monthlySalaryInput.value) || 0;
+  const remaining = ms - mTotal;
+  remainingSalaryEl.textContent = fmtMoney(remaining >= 0 ? remaining : 0);
+}
+
+/* Add a new blank row */
+function addRow(initial){
+  const id = Date.now() + Math.floor(Math.random()*1000);
+  const r = {
+    id,
+    month: initial?.month || (new Date()).getMonth()+1,
+    type: initial?.type || '事假',
+    hours: initial?.hours || 8,
+    ratio: defaultRules[initial?.type || '事假'],
+    customRatio: initial?.customRatio || '',
+    deduction: 0
+  };
+  rows.push(r);
+  recalcAll();
+}
+
+/* events */
+addRowBtn.addEventListener('click', ()=> addRow());
+clearAllBtn.addEventListener('click', ()=>{
+  if(!confirm('確定要清空所有請假紀錄？')) return;
+  rows = []; recalcAll();
+});
+
+monthlySalaryInput.addEventListener('input', recalcAll);
+daysPerMonthInput.addEventListener('input', recalcAll);
+hoursPerDayInput.addEventListener('input', recalcAll);
+monthSelect.addEventListener('change', updateSummary);
+
+/* CSV export */
+exportCsvBtn.addEventListener('click', ()=>{
+  const header = ['月份','假別','請假時數','扣薪比例','扣薪金額'];
+  const lines = [header.join(',')];
+  rows.forEach(r=>{
+    let ratio = r.ratio;
+    if(ratio === null) ratio = parseCustomRatio(r.customRatio) || 0;
+    lines.push([r.month, `"${r.type}"`, r.hours, ratio, (r.deduction||0).toFixed(2)].join(','));
+  });
+  const blob = new Blob([lines.join('\n')], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = '請假扣薪紀錄.csv'; document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+});
+
+/* XLSX export using SheetJS (attempt to load); fallback to CSV if not available */
+exportXlsxBtn.addEventListener('click', async ()=>{
+  if(typeof XLSX === 'undefined'){
+    // try load script
+    try {
+      await loadScript('https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js');
+    } catch(e) {
+      alert('無法載入 XLSX 工具，將改以 CSV 匯出。\n你仍可使用「匯出 CSV」或確保能連網後重試 XLSX。'); 
+      exportCsvBtn.click(); 
+      return;
+    }
+  }
+  // Build worksheet data
+  const ws_data = [['月份','假別','請假時數','扣薪比例','扣薪金額']];
+  rows.forEach(r=>{
+    let ratio = r.ratio;
+    if(ratio === null) ratio = parseCustomRatio(r.customRatio) || 0;
+    ws_data.push([r.month, r.type, r.hours, ratio, Number((r.deduction||0).toFixed(2))]);
+  });
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(ws_data);
+  XLSX.utils.book_append_sheet(wb, ws, '請假扣薪');
+  const wbout = XLSX.write(wb, {bookType:'xlsx', type:'array'});
+  const blob = new Blob([wbout], {type:'application/octet-stream'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = '請假扣薪紀錄.xlsx'; document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+});
+
+/* helper to load script dynamically */
+function loadScript(src){
+  return new Promise((res, rej)=>{
+    const s = document.createElement('script'); s.src = src; s.onload = ()=>res(); s.onerror = ()=>rej();
+    document.head.appendChild(s);
+  });
+}
+
+/* paste multi-line CSV into quick-add (format: 月份,假別,時數) */
+pasteSampleBtn.addEventListener('click', ()=>{
+  const text = prompt('請貼上多列資料（每列一筆，格式：月份,假別,時數，例如：1,事假,8），按確定開始匯入：');
+  if(!text) return;
+  const lines = text.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+  let added = 0;
+  lines.forEach(line=>{
+    const parts = line.split(',');
+    if(parts.length >= 3){
+      const month = parseInt(parts[0]);
+      const type = parts[1].trim();
+      const hours = parseFloat(parts[2]);
+      if(!isNaN(month) && type && !isNaN(hours)){
+        const initial = {month, type, hours, customRatio: ''};
+        initial.ratio = defaultRules[type] === undefined ? null : defaultRules[type];
+        addRow(initial);
+        // set ratio and custom if needed
+        const last = rows[rows.length-1];
+        last.type = type;
+        last.hours = hours;
+        last.ratio = defaultRules[type] === undefined ? null : defaultRules[type];
+        added++;
+      }
+    }
+  });
+  if(added>0) alert('已匯入 ' + added + ' 筆資料'); else alert('未匯入任何資料，請檢查格式');
+});
+
+/* init */
+recalcAll();
+</script>
+</body>
+</html>
