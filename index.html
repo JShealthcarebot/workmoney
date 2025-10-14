@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>請假統計表</title>
+  <style>
+    body {
+      font-family: "Microsoft JhengHei", sans-serif;
+      background-color: #f8f9fa;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      background-color: white;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      text-align: center;
+      padding: 8px;
+    }
+    th {
+      background-color: #e9ecef;
+    }
+    tr:nth-child(even) {
+      background-color: #f1f3f5;
+    }
+    .btn {
+      background-color: #007bff;
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    .btn:hover {
+      background-color: #0056b3;
+    }
+    .result {
+      margin-top: 20px;
+      background-color: #fff3cd;
+      padding: 15px;
+      border-radius: 8px;
+      font-weight: bold;
+    }
+    .controls {
+      text-align: center;
+      margin-bottom: 10px;
+    }
+    input[type="datetime-local"] {
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      padding: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h1>請假統計表</h1>
+  <div class="controls">
+    <button class="btn" onclick="addRow()">➕ 新增一筆</button>
+    <button class="btn" onclick="calculate()">📊 計算統計</button>
+  </div>
+  <table id="leaveTable">
+    <thead>
+      <tr>
+        <th>月份</th>
+        <th>日期時間</th>
+        <th>假別</th>
+        <th>請假時數</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody>
+      <!-- 初始範例資料 -->
+      <tr>
+        <td>1</td>
+        <td><input type="datetime-local" /></td>
+        <td>
+          <select>
+            <option value="事假">事假</option>
+            <option value="病假">病假</option>
+            <option value="特休假">特休假</option>
+            <option value="生理假">生理假</option>
+          </select>
+        </td>
+        <td><input type="number" value="8" min="0" step="1" /></td>
+        <td><button class="btn" onclick="deleteRow(this)">刪除</button></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div id="result" class="result">請輸入資料後按「計算統計」</div>
+
+  <script>
+    function addRow() {
+      const table = document.getElementById("leaveTable").getElementsByTagName("tbody")[0];
+      const newRow = table.insertRow();
+      const monthCell = newRow.insertCell(0);
+      const dateCell = newRow.insertCell(1);
+      const typeCell = newRow.insertCell(2);
+      const hoursCell = newRow.insertCell(3);
+      const actionCell = newRow.insertCell(4);
+
+      monthCell.innerHTML = `<input type="number" min="1" max="12" placeholder="月" style="width:60px;">`;
+      dateCell.innerHTML = `<input type="datetime-local">`;
+      typeCell.innerHTML = `
+        <select>
+          <option value="事假">事假</option>
+          <option value="病假">病假</option>
+          <option value="特休假">特休假</option>
+          <option value="生理假">生理假</option>
+        </select>`;
+      hoursCell.innerHTML = `<input type="number" value="8" min="0" step="1" style="width:60px;">`;
+      actionCell.innerHTML = `<button class="btn" onclick="deleteRow(this)">刪除</button>`;
+    }
+
+    function deleteRow(button) {
+      const row = button.closest("tr");
+      row.remove();
+    }
+
+    function calculate() {
+      const rows = document.querySelectorAll("#leaveTable tbody tr");
+      const summary = {};
+      let total = 0;
+
+      rows.forEach(row => {
+        const monthInput = row.cells[0].querySelector("input");
+        const month = monthInput ? monthInput.value : row.cells[0].textContent.trim();
+        const type = row.cells[2].querySelector("select").value;
+        const hours = parseFloat(row.cells[3].querySelector("input").value) || 0;
+        total += hours;
+        if (!summary[month]) summary[month] = {};
+        if (!summary[month][type]) summary[month][type] = 0;
+        summary[month][type] += hours;
+      });
+
+      let resultText = `<h3>📅 統計結果：</h3>`;
+      for (const month in summary) {
+        resultText += `<strong>${month}月：</strong><br>`;
+        for (const type in summary[month]) {
+          resultText += `${type}: ${summary[month][type]} 小時<br>`;
+        }
+      }
+      resultText += `<br>🌟 <strong>總請假時數：</strong> ${total} 小時`;
+
+      document.getElementById("result").innerHTML = resultText;
+    }
+  </script>
+</body>
+</html>
