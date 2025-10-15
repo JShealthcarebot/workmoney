@@ -1,128 +1,87 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh-Hant">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>請假薪資計算器</title>
-  <style>
-    body {
-      font-family: "Microsoft JhengHei", sans-serif;
-      background: #f4f8fb;
-      margin: 0;
-      padding: 20px;
-    }
-    h1 {
-      text-align: center;
-      color: #2c3e50;
-    }
-    .card {
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 3px 6px rgba(0,0,0,0.1);
-      padding: 20px;
-      max-width: 900px;
-      margin: 0 auto;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 10px;
-    }
-    th, td {
-      border: 1px solid #ddd;
-      text-align: center;
-      padding: 8px;
-    }
-    th {
-      background: #e9f2fa;
-    }
-    .btn {
-      background: #3498db;
-      color: white;
-      border: none;
-      padding: 8px 14px;
-      border-radius: 6px;
-      cursor: pointer;
-      margin: 5px;
-    }
-    .btn:hover {
-      background: #2c80b4;
-    }
-    input, select {
-      padding: 4px 6px;
-      border-radius: 5px;
-      border: 1px solid #ccc;
-    }
-    .result {
-      margin-top: 20px;
-      background: #fff8e1;
-      border-radius: 10px;
-      padding: 15px;
-      font-weight: bold;
-    }
-    .input-group {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      justify-content: center;
-      margin-bottom: 15px;
-    }
-    .input-group label {
-      font-weight: bold;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>請假扣薪計算</title>
+<style>
+  body {
+    font-family: "Microsoft JhengHei", sans-serif;
+    background-color: #f4f8fb;
+    margin: 0;
+    padding: 20px;
+  }
+  .container {
+    background: #fff;
+    border-radius: 12px;
+    padding: 20px;
+    max-width: 850px;
+    margin: auto;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  }
+  h2 {
+    text-align: center;
+    color: #333;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 15px;
+  }
+  th, td {
+    border: 1px solid #ddd;
+    text-align: center;
+    padding: 8px;
+  }
+  th {
+    background-color: #e8f4ff;
+  }
+  button {
+    background-color: #4da3ff;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 14px;
+    cursor: pointer;
+    font-size: 15px;
+  }
+  button:hover {
+    background-color: #298ae0;
+  }
+  .result {
+    background-color: #fff9e6;
+    border: 1px solid #f5d48b;
+    padding: 15px;
+    border-radius: 8px;
+  }
+  .result h3 {
+    color: #444;
+  }
+  input, select {
+    padding: 6px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    width: 90%;
+  }
+</style>
 </head>
 <body>
-  <h1>💰 請假薪資計算器</h1>
 
-  <div class="card">
-    <div class="input-group">
-      <label>月薪（元）：<input type="number" id="salary" placeholder="請輸入月薪"></label>
-      <label>每月工作天數：<input type="number" id="workDays" placeholder="例：30"></label>
-      <label>每日工時：<input type="number" id="workHours" placeholder="例：8"></label>
-    </div>
-
-    <div style="text-align:center;">
-      <button class="btn" onclick="addRow()">➕ 新增請假紀錄</button>
-      <button class="btn" onclick="calculate()">📊 計算結果</button>
-    </div>
-
-    <table id="leaveTable">
-      <thead>
-        <tr>
-          <th>日期</th>
-          <th>假別</th>
-          <th>請假時數</th>
-          <th>操作</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr>
-          <td><input type="date"></td>
-          <td>
-            <select>
-              <option value="事假">事假</option>
-              <option value="病假">病假</option>
-              <option value="生理假">生理假</option>
-              <option value="特休假">特休假</option>
-              <option value="公假">公假</option>
-              <option value="其他">其他</option>
-            </select>
-          </td>
-          <td><input type="number" value="8" min="0" step="0.5"></td>
-          <td><button class="btn" onclick="deleteRow(this)">刪除</button></td>
-        </tr>
-      </tbody>
-    </table>
-
-    <div id="result" class="result">請輸入資料後按「📊 計算結果」</div>
-  </div>
-
-  <script>
-    function addRow() {
-      const tbody = document.querySelector("#leaveTable tbody");
-      const row = document.createElement("tr");
-      row.innerHTML = `
+<div class="container">
+  <h2>🗓️ 請假扣薪計算表</h2>
+  <label>月薪：</label>
+  <input type="number" id="salary" placeholder="請輸入月薪"><br><br>
+  <table id="leaveTable">
+    <thead>
+      <tr>
+        <th>日期</th>
+        <th>假別</th>
+        <th>請假時數</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
         <td><input type="date"></td>
         <td>
           <select>
@@ -130,61 +89,82 @@
             <option value="病假">病假</option>
             <option value="生理假">生理假</option>
             <option value="特休假">特休假</option>
-            <option value="公假">公假</option>
-            <option value="其他">其他</option>
           </select>
         </td>
-        <td><input type="number" value="8" min="0" step="0.5"></td>
-        <td><button class="btn" onclick="deleteRow(this)">刪除</button></td>
-      `;
-      tbody.appendChild(row);
+        <td><input type="number" value="8"></td>
+        <td><button onclick="deleteRow(this)">刪除</button></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <button onclick="addRow()">➕ 新增一列</button>
+  <button onclick="calculate()">💰 開始計算</button>
+
+  <div class="result" id="result"></div>
+</div>
+
+<script>
+function addRow() {
+  const table = document.getElementById("leaveTable").getElementsByTagName('tbody')[0];
+  const newRow = table.insertRow();
+  newRow.innerHTML = `
+    <td><input type="date"></td>
+    <td>
+      <select>
+        <option value="事假">事假</option>
+        <option value="病假">病假</option>
+        <option value="生理假">生理假</option>
+        <option value="特休假">特休假</option>
+      </select>
+    </td>
+    <td><input type="number" value="8"></td>
+    <td><button onclick="deleteRow(this)">刪除</button></td>
+  `;
+}
+
+function deleteRow(button) {
+  button.closest('tr').remove();
+}
+
+function calculate() {
+  const salary = parseFloat(document.getElementById("salary").value);
+  if (!salary) {
+    alert("請輸入月薪！");
+    return;
+  }
+
+  const rows = document.querySelectorAll("#leaveTable tbody tr");
+  const dayPay = salary / 30;
+  const hourPay = dayPay / 8;
+  let totalHours = 0;
+  let totalDeduct = 0;
+  let details = "";
+
+  rows.forEach(row => {
+    const date = row.cells[0].querySelector("input").value;
+    const type = row.cells[1].querySelector("select").value;
+    const hours = parseFloat(row.cells[2].querySelector("input").value) || 0;
+    totalHours += hours;
+
+    let deduct = 0;
+    if (type === "事假" || type === "病假") {
+      deduct = hourPay * hours;
+    } else if (type === "生理假" || type === "特休假") {
+      deduct = 0;
     }
+    totalDeduct += deduct;
+    details += `${date || "未填日期"} - ${type} ${hours} 小時：扣薪 $${deduct.toFixed(0)}<br>`;
+  });
 
-    function deleteRow(button) {
-      button.closest("tr").remove();
-    }
+  document.getElementById("result").innerHTML = `
+    <h3>📋 扣薪明細：</h3>
+    ${details}
+    <hr>
+    🌞 總請假時數：${totalHours} 小時<br>
+    💵 總扣薪金額：$${totalDeduct.toFixed(0)}
+  `;
+}
+</script>
 
-    function getDeductionRate(type) {
-      if (["特休假", "公假"].includes(type)) return 0;
-      if (["病假", "生理假"].includes(type)) return 0.5;
-      return 1;
-    }
-
-    function calculate() {
-      const salary = parseFloat(document.getElementById("salary").value);
-      const days = parseFloat(document.getElementById("workDays").value);
-      const hours = parseFloat(document.getElementById("workHours").value);
-      if (!salary || !days || !hours) {
-        alert("請先輸入月薪、工作天數與每日工時！");
-        return;
-      }
-
-      const hourPay = salary / (days * hours);
-      const rows = document.querySelectorAll("#leaveTable tbody tr");
-
-      let totalDeduct = 0;
-      let totalHours = 0;
-      let resultHTML = `<h3>📅 扣薪明細：</h3>`;
-
-      rows.forEach(row => {
-        const date = row.cells[0].querySelector("input").value;
-        const type = row.cells[1].querySelector("select").value;
-        const hoursLeave = parseFloat(row.cells[2].querySelector("input").value) || 0;
-        const rate = getDeductionRate(type);
-        const deduct = hourPay * hoursLeave * rate;
-        totalDeduct += deduct;
-        totalHours += hoursLeave;
-
-        resultHTML += `${date || "未填日期"} - ${type} ${hoursLeave} 小時：扣薪 <strong>$${deduct.toFixed(0)}</strong><br>`;
-      });
-
-      const actualSalary = salary - totalDeduct;
-      resultHTML += `<hr>🌟 總請假時數：${totalHours} 小時<br>`;
-      resultHTML += `💸 總扣薪金額：<strong>$${totalDeduct.toFixed(0)}</strong><br>`;
-      resultHTML += `💰 實領薪資：<strong>$${actualSalary.toFixed(0)}</strong>`;
-
-      document.getElementById("result").innerHTML = resultHTML;
-    }
-  </script>
 </body>
 </html>
